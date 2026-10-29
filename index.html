@@ -1,0 +1,1268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>징검다리 셈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   색·크기 — 바꾸고 싶으면 여기만 고치면 됩니다
+   ========================================================= */
+:root{
+  --bg:#eaf6fc;        /* 바탕(하늘) */
+  --water:#bfe3f4;     /* 냇물 */
+  --water2:#9fd2ec;
+  --stone:#cdbfac;     /* 돌 */
+  --stone-d:#9c8b74;
+  --ink:#27323d;       /* 글자 */
+  --sub:#62707e;
+  --card:#ffffff;
+  --accent:#f08a24;    /* 포인트(주황) */
+  --stamp:#d9442b;     /* 합격 도장 */
+  --ok:#239a62;
+  --bad:#d9533c;
+  --shade:#f5a03a;     /* 그림 색칠 1 */
+  --shade2:#3fa79a;    /* 그림 색칠 2 */
+  --line:#4a5662;
+  --lock:#dcd8d1;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans KR",system-ui,sans-serif;
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;
+  overflow:hidden;
+}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none;touch-action:manipulation}
+.hidden{display:none!important}
+.jua{font-family:"Jua","Noto Sans KR",sans-serif;font-weight:400}
+
+/* 화면 전환 */
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
+.screen.on{display:flex}
+
+/* 위쪽 막대 */
+.bar{
+  display:flex;align-items:center;gap:12px;
+  height:68px;padding:0 20px;flex:0 0 auto;
+}
+.bar .grow{flex:1}
+.title{font-family:"Jua",sans-serif;font-size:30px;letter-spacing:1px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 18px;
+  background:#fff;border-radius:22px;font-size:19px;font-weight:700;box-shadow:0 2px 0 #cfe2ec;
+}
+.iconbtn{
+  width:48px;height:48px;border-radius:24px;background:#fff;font-size:24px;
+  display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 0 #cfe2ec;
+}
+.backbtn{
+  height:46px;padding:0 18px;border-radius:23px;background:#fff;font-size:18px;font-weight:700;
+  box-shadow:0 2px 0 #cfe2ec;
+}
+
+/* ---------- 분수 표시 ---------- */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em;line-height:1}
+.frac>.num,.frac>.den{display:block;padding:.06em .18em;text-align:center;min-width:1em}
+.frac>.num{border-bottom:.08em solid currentColor}
+.neg{margin-right:.04em}
+
+/* =========================================================
+   1. 징검다리 지도
+   ========================================================= */
+#map .river{
+  flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;
+  padding:6px 28px 20px;
+}
+.lane{position:relative}
+.lane h3{margin:0 0 8px 6px;font-family:"Jua",sans-serif;font-weight:400;font-size:22px;color:var(--sub)}
+.stream{
+  position:relative;border-radius:30px;padding:22px 18px 14px;
+  background:
+    repeating-linear-gradient(100deg,transparent 0 38px,rgba(255,255,255,.35) 38px 41px,transparent 41px 80px),
+    linear-gradient(180deg,var(--water),var(--water2));
+  display:flex;justify-content:space-around;align-items:flex-start;
+}
+.stream::before{ /* 돌 사이 점선 길 */
+  content:"";position:absolute;left:8%;right:8%;top:68px;border-top:4px dashed rgba(255,255,255,.85);
+}
+.stone{position:relative;display:flex;flex-direction:column;align-items:center;width:120px;z-index:1}
+.stone .rock{
+  width:96px;height:88px;border-radius:50% 50% 46% 54%/56% 52% 48% 44%;
+  background:var(--stone);box-shadow:inset 0 -8px 0 var(--stone-d),0 4px 0 rgba(0,0,0,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-family:"Jua",sans-serif;font-size:38px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18);
+  transition:transform .15s;
+}
+.stone:active .rock{transform:scale(.94)}
+.stone .lbl{margin-top:8px;font-size:15px;font-weight:700;text-align:center;line-height:1.25;color:var(--ink);word-break:keep-all;min-height:38px}
+.stone.locked .rock{background:var(--lock);box-shadow:inset 0 -8px 0 #c3bdb3;color:#a8a29a}
+.stone.locked .lbl{color:#7f8b96}
+.stone.current .rock{outline:5px solid #fff;outline-offset:3px;animation:pulse 1.6s infinite}
+.stone .badge{position:absolute;top:-6px;right:6px;font-size:24px}
+.stone .seal{
+  position:absolute;top:-10px;right:-2px;width:50px;height:50px;border-radius:50%;
+  border:3px solid var(--stamp);color:var(--stamp);background:rgba(255,255,255,.85);
+  display:flex;align-items:center;justify-content:center;font-family:"Jua",sans-serif;font-size:16px;
+  transform:rotate(-14deg);
+}
+.stone.stamp .seal{animation:stamp .55s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes stamp{0%{transform:scale(2.6) rotate(-30deg);opacity:0}100%{transform:scale(1) rotate(-14deg);opacity:1}}
+@keyframes pulse{0%,100%{outline-color:#fff}50%{outline-color:#ffd38f}}
+.mapfoot{text-align:center;padding:0 0 18px;font-size:20px;font-weight:700;color:var(--sub)}
+.mapfoot b{color:var(--stamp);font-size:26px}
+
+/* =========================================================
+   2. 단원 입구 (원리 보기)
+   ========================================================= */
+#entry .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 24px 22px;min-height:0}
+.card{
+  width:min(860px,100%);flex:1;max-height:440px;min-height:0;background:var(--card);border-radius:26px;
+  box-shadow:0 4px 0 #cfe2ec;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:18px 28px;gap:16px;text-align:center;
+}
+.card .cpic{display:flex;align-items:center;justify-content:center;max-width:100%}
+.card .ctext{font-size:23px;line-height:1.75;word-break:keep-all}
+.card .ctext small{font-size:18px;color:var(--sub)}
+.cardnav{display:flex;align-items:center;gap:18px}
+.cardnav .arrow{width:56px;height:56px;border-radius:28px;background:#fff;font-size:24px;box-shadow:0 2px 0 #cfe2ec}
+.cardnav .arrow:disabled{opacity:.35}
+.dots{display:flex;gap:10px}
+.dots i{width:13px;height:13px;border-radius:50%;background:#c4d7e2;display:block}
+.dots i.on{background:var(--accent)}
+.modebtns{display:flex;gap:20px}
+.bigbtn{
+  height:72px;min-width:230px;padding:0 30px;border-radius:36px;font-size:25px;font-family:"Jua",sans-serif;
+  background:#fff;box-shadow:0 5px 0 #cfe2ec;
+}
+.bigbtn.primary{background:var(--accent);color:#fff;box-shadow:0 5px 0 #c96c12}
+.bigbtn.green{background:var(--ok);color:#fff;box-shadow:0 5px 0 #1a744a}
+.bigbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #cfe2ec}
+.linkbtn{font-size:18px;font-weight:700;color:var(--stamp);padding:6px 10px}
+
+/* 그림 묶음 */
+.stack{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.stack .row{display:flex;align-items:center;gap:14px}
+.stack .rl{min-width:56px;text-align:right;font-size:24px;font-weight:700}
+.eqrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center}
+.eqrow .op{font-size:34px;font-weight:700}
+.bigf{font-size:34px;font-weight:700;line-height:2}
+.signtbl{border-collapse:collapse;font-size:26px;font-weight:700}
+.signtbl td{border:2px solid #d6e3ea;padding:6px 18px}
+.signtbl .p{color:var(--ok)} .signtbl .m{color:var(--bad)}
+
+/* =========================================================
+   3. 문제 풀이
+   ========================================================= */
+.progress{height:10px;margin:0 20px;background:#d6e9f3;border-radius:5px;overflow:hidden;flex:0 0 auto}
+.progress>div{height:100%;width:0;background:var(--accent);border-radius:5px;transition:width .3s}
+.playgrid{flex:1;display:grid;grid-template-columns:1fr 330px;gap:18px;padding:14px 20px 20px;min-height:0}
+.qarea{
+  background:#fff;border-radius:26px;box-shadow:0 4px 0 #cfe2ec;
+  display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 24px;
+  overflow-y:auto;min-height:0;position:relative;
+}
+.ask{font-size:22px;font-weight:700;text-align:center;line-height:1.6;word-break:keep-all}
+.pic{display:flex;justify-content:center;align-items:center;max-width:100%}
+.pic svg{max-width:100%;height:auto}
+.expr{font-size:44px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;min-height:20px}
+.expr .frac{font-size:.92em}
+/* 답 칸 */
+.ans{display:inline-flex;align-items:center;gap:4px;margin-left:6px}
+.asign{min-width:.5em;text-align:right;color:var(--accent)}
+.abox{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:78px;height:62px;padding:0 8px;border:3px solid #b9c9d3;border-radius:14px;background:#f7fbfd;
+  font-size:40px;color:var(--accent);
+}
+.abox.on{border-color:var(--accent);background:#fff6ec;box-shadow:0 0 0 4px rgba(240,138,36,.18)}
+.afrac{display:inline-flex;flex-direction:column;align-items:center;gap:6px}
+.afrac .aline{width:100%;height:5px;background:var(--ink);border-radius:3px}
+.cbox{
+  display:inline-flex;align-items:center;justify-content:center;width:70px;height:62px;
+  border:3px dashed #b9c9d3;border-radius:14px;color:var(--accent);margin:0 6px;
+}
+.filled{color:var(--ok)}
+.choices{display:flex;gap:16px;justify-content:center}
+.choices button{
+  width:96px;height:80px;border-radius:20px;background:#f2f7fa;font-size:40px;font-weight:900;
+  box-shadow:0 4px 0 #d4e1e8;
+}
+.choices button.sel{background:var(--accent);color:#fff;box-shadow:0 4px 0 #c96c12}
+.feedback{min-height:34px;font-size:24px;font-weight:900;text-align:center}
+.feedback.ok{color:var(--ok)} .feedback.bad{color:var(--bad)} .feedback.info{color:var(--accent)}
+.helpbox{
+  width:100%;background:#fff8ef;border:2px solid #fbd7ad;border-radius:18px;padding:14px 18px;
+  font-size:24px;line-height:1.8;text-align:center;word-break:keep-all;
+}
+.helpbox .frac{font-size:1.05em}
+.helpbox h4{margin:0 0 6px;font-family:"Jua",sans-serif;font-weight:400;font-size:22px;color:var(--accent)}
+.helpbox .pic{margin:8px 0}
+.hintbtn{
+  position:absolute;left:18px;bottom:16px;height:46px;padding:0 18px;border-radius:23px;
+  background:#fff4e2;color:#b5650f;font-size:18px;font-weight:700;
+}
+.qspacer{height:48px;flex:0 0 auto}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+
+/* 숫자패드 */
+.padarea{display:flex;flex-direction:column;gap:12px;min-height:0}
+.fracsel{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fracsel button{height:52px;border-radius:16px;background:#fff;font-size:17px;font-weight:700;box-shadow:0 3px 0 #cfe2ec}
+.fracsel button.on{background:#fff1e1;color:#b5650f;box-shadow:0 3px 0 #f2c48f}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;flex:1;min-height:0}
+.pad button{
+  border-radius:18px;background:#fff;font-size:34px;font-weight:700;box-shadow:0 4px 0 #cfe2ec;min-height:56px;
+}
+.pad button:active{transform:translateY(3px);box-shadow:0 1px 0 #cfe2ec}
+.pad button.minus{color:var(--accent)}
+.pad.dim{opacity:.3;pointer-events:none}
+.check{
+  height:76px;border-radius:22px;background:var(--accent);color:#fff;font-family:"Jua",sans-serif;font-size:30px;
+  box-shadow:0 5px 0 #c96c12;flex:0 0 auto;
+}
+.check:active{transform:translateY(3px);box-shadow:0 2px 0 #c96c12}
+.check.next{background:var(--ok);box-shadow:0 5px 0 #1a744a}
+
+/* 그림 클릭 */
+.pc,.nlhit{cursor:pointer}
+
+/* =========================================================
+   4. 결과 / 합격증
+   ========================================================= */
+#result .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px}
+.restitle{font-family:"Jua",sans-serif;font-size:44px;margin:0}
+.resmsg{font-size:22px;font-weight:700;color:var(--sub);text-align:center}
+.cert{
+  position:relative;width:440px;max-width:100%;padding:26px 30px 24px;background:#fffdf6;
+  border:6px double #c9a76a;border-radius:10px;text-align:center;box-shadow:0 6px 0 #e6dcc6;
+}
+.cert .ct{font-family:"Jua",sans-serif;font-size:40px;letter-spacing:14px;margin-bottom:12px}
+.cert .cn{font-size:30px;font-weight:900;margin:6px 0}
+.cert .cu{font-size:21px;font-weight:700}
+.cert .cd{font-size:18px;color:var(--sub);margin-top:10px}
+.cert .cseal{
+  position:absolute;right:22px;top:22px;width:78px;height:78px;border-radius:50%;
+  border:4px solid var(--stamp);color:var(--stamp);display:flex;align-items:center;justify-content:center;
+  font-family:"Jua",sans-serif;font-size:24px;transform:rotate(-14deg);background:rgba(255,255,255,.6);
+  animation:stamp .6s .25s cubic-bezier(.2,1.6,.4,1) both;
+}
+.resbtns{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+
+/* =========================================================
+   창(모달)
+   ========================================================= */
+.modal{position:fixed;inset:0;background:rgba(30,45,60,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.mbox{
+  background:#fff;border-radius:26px;padding:26px 30px;width:min(560px,100%);max-height:92vh;overflow-y:auto;
+  display:flex;flex-direction:column;gap:16px;align-items:stretch;
+}
+.mbox.wide{width:min(880px,100%)}
+.mbox h2{margin:0;font-family:"Jua",sans-serif;font-weight:400;font-size:30px;text-align:center}
+.mbox p{margin:0;font-size:20px;text-align:center;line-height:1.6;word-break:keep-all}
+.mbox input[type=text],.mbox input[type=password]{
+  height:62px;border:3px solid #b9c9d3;border-radius:16px;padding:0 18px;font-size:26px;font-family:inherit;
+  -webkit-user-select:text;user-select:text;outline:none;
+}
+.mbox input:focus{border-color:var(--accent)}
+.mrow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.mbtn{height:58px;min-width:140px;padding:0 24px;border-radius:29px;font-size:21px;font-weight:700;background:#eef4f7}
+.mbtn.primary{background:var(--accent);color:#fff}
+.mbtn.danger{background:#fde8e4;color:var(--bad)}
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tgrid label,.tline{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:#f3f8fb;font-size:17px;font-weight:700;
+}
+.tgrid input,.tline input{width:24px;height:24px;accent-color:var(--accent)}
+.sect{font-size:17px;font-weight:900;color:var(--sub);margin-top:4px}
+.rev{border:2px solid #e3edf2;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.rev .rq{font-size:30px;font-weight:700;display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:4px}
+.rev .ra{font-size:19px;color:var(--sub)}
+.rev .ra b{color:var(--bad)}
+.rev .rx{font-size:18px;line-height:1.7;text-align:center;word-break:keep-all;background:#fff8ef;border-radius:12px;padding:8px 12px;width:100%}
+
+/* 세로로 들었을 때도 깨지지 않게 */
+@media (orientation:portrait), (max-width:820px){
+  body{overflow:auto}
+  .screen{position:absolute;min-height:100%}
+  .playgrid{grid-template-columns:1fr}
+  .pad{min-height:280px}
+  .stream{flex-wrap:wrap;gap:10px}
+  .stream::before{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. 징검다리 지도 ============ -->
+<section id="map" class="screen">
+  <div class="bar">
+    <div class="title">🪨 징검다리 셈</div>
+    <div class="grow"></div>
+    <div class="chip" id="nameChip">🙂 <span id="nameText"></span></div>
+    <button class="iconbtn" id="teacherBtn" aria-label="교사용 메뉴">⚙️</button>
+  </div>
+  <div class="river" id="river"></div>
+  <div class="mapfoot">합격 도장 <b id="passCount">0</b> / 9</div>
+</section>
+
+<!-- ============ 2. 단원 입구 ============ -->
+<section id="entry" class="screen">
+  <div class="bar">
+    <button class="backbtn" data-go="map">← 지도</button>
+    <div class="title" id="entryTitle"></div>
+    <div class="grow"></div>
+    <button class="linkbtn hidden" id="certBtn">📜 합격증 보기</button>
+  </div>
+  <div class="body">
+    <div class="card" id="card"></div>
+    <div class="cardnav">
+      <button class="arrow" id="prevCard">◀</button>
+      <div class="dots" id="dots"></div>
+      <button class="arrow" id="nextCard">▶</button>
+    </div>
+    <div class="modebtns">
+      <button class="bigbtn" id="practiceBtn">✏️ 연습하기</button>
+      <button class="bigbtn primary" id="examBtn">📝 시험 보기</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. 문제 풀이 ============ -->
+<section id="play" class="screen">
+  <div class="bar">
+    <button class="backbtn" id="quitBtn">← 그만</button>
+    <div class="title" id="playTitle" style="font-size:24px"></div>
+    <div class="grow"></div>
+    <div class="chip" id="playStatus"></div>
+  </div>
+  <div class="progress" id="progress"><div></div></div>
+  <div class="playgrid">
+    <div class="qarea" id="qarea">
+      <div class="ask" id="ask"></div>
+      <div class="pic" id="pic"></div>
+      <div class="expr" id="expr"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="helpbox hidden" id="helpBox"></div>
+      <div class="qspacer"></div>
+      <button class="hintbtn" id="hintBtn">💡 힌트</button>
+    </div>
+    <div class="padarea">
+      <div class="fracsel" id="fracSel">
+        <button data-f="num">⬆ 위 칸 (분자)</button>
+        <button data-f="den">⬇ 아래 칸 (분모)</button>
+      </div>
+      <div class="pad" id="pad">
+        <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+        <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+        <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+        <button data-k="-" class="minus">−</button><button data-k="0">0</button><button data-k="del">⌫</button>
+      </div>
+      <button class="check" id="checkBtn">확인 ✔</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. 결과 ============ -->
+<section id="result" class="screen">
+  <div class="body">
+    <h1 class="restitle" id="resTitle"></h1>
+    <div id="resCert"></div>
+    <div class="resmsg" id="resMsg"></div>
+    <div class="resbtns" id="resBtns"></div>
+  </div>
+</section>
+
+<div class="modal hidden" id="modal"><div class="mbox" id="mbox"></div></div>
+
+<script>
+/* =========================================================
+   ★ 설정 — 선생님이 직접 바꿀 수 있는 값은 여기에 모았습니다
+   ========================================================= */
+const CONFIG = {
+  EXAM_COUNT: 10,        // 시험 문항 수
+  PASS_SCORE: 7,         // 이 개수 이상 맞히면 합격
+  MAX_DEN: 12,           // 분수 문제 분모(통분 후 포함)의 최댓값
+  INT_RANGE: 20,         // 정수 문제 숫자 범위 (−20 ~ 20)
+  REDUCE_RETRY: true,    // 약분 안 한 답에 "한 번 더 약분" 기회 주기
+  TEACHER_PW: '1234',    // 교사용 메뉴 비밀번호 ← 꼭 바꿔 주세요
+  CHEERS: ['정답! 👏', '잘했어요! 🎉', '최고예요! ⭐', '바로 그거야! 👍', '척척 박사! 💯'],
+  RETRY_MSG: '아쉬워요! 힌트를 보고 한 번 더 해 볼까요?',
+  REDUCE_MSG: '거의 다 왔어요! 한 번 더 약분할 수 있어요 ✂️',
+  FAIL_MSG: (need, got) => `${need}개만 맞히면 합격! 지금 ${got}개 — 조금만 더 연습해요 💪`,
+};
+const STORE_KEY = 'jingumdari-sem-v1';   // 기기에 저장되는 이름 (바꾸면 기록이 초기화된 것처럼 보임)
+
+/* =========================================================
+   기본 도구: 난수, 분수 계산
+   ========================================================= */
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const sgn = () => (Math.random() < .5 ? 1 : -1);
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = ri(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; }
+const lcm = (a, b) => a / gcd(a, b) * b;
+const nz = (a, b) => { let x; do { x = ri(a, b); } while (x === 0); return x; };          // 0이 아닌 정수
+const coprimeNum = d => { let a; do { a = ri(1, d - 1); } while (gcd(a, d) !== 1); return a; }; // 기약 진분수의 분자
+
+// 분수: 분모는 항상 양수, 부호는 분자에
+class Fr {
+  constructor(n, d = 1) { if (d < 0) { n = -n; d = -d; } this.n = n; this.d = d; }
+  red() { const g = gcd(this.n, this.d); return new Fr(this.n / g, this.d / g); }
+  add(o) { return new Fr(this.n * o.d + o.n * this.d, this.d * o.d).red(); }
+  sub(o) { return new Fr(this.n * o.d - o.n * this.d, this.d * o.d).red(); }
+  mul(o) { return new Fr(this.n * o.n, this.d * o.d).red(); }
+  div(o) { return new Fr(this.n * o.d, this.d * o.n).red(); }
+  eq(o) { return this.n * o.d === o.n * this.d; }
+  cmp(o) { return Math.sign(this.n * o.d - o.n * this.d); }
+  abs() { return new Fr(Math.abs(this.n), this.d); }
+}
+
+/* ---------- 수를 화면용 HTML로 ---------- */
+const M = '−'; // 진짜 빼기 기호
+const N = x => (x < 0 ? M + (-x) : '' + x);                              // 정수: −3
+const S = x => '(' + (x < 0 ? M : '+') + Math.abs(x) + ')';              // 부호 붙인 정수: (+3) (−3)
+const F = (n, d) => `<span class="frac"><span class="num">${n}</span><span class="den">${d}</span></span>`;
+function V(f) {                                                           // 분수(또는 정수) 값 하나
+  if (f.d === 1) return N(f.n);
+  return (f.n < 0 ? `<span class="neg">${M}</span>` : '') + F(Math.abs(f.n), f.d);
+}
+const SV = f => '(' + (f.n < 0 ? M : '+') + V(f.abs()) + ')';            // (−3/4) 꼴
+function VR(n, d) {                                                       // 결과 + 약분되면 "= 약분 결과"
+  const raw = new Fr(n, d), r = raw.red();
+  return (r.n === raw.n && r.d === raw.d) ? V(raw) : V(raw) + ' = ' + V(r);
+}
+
+/* =========================================================
+   그림(SVG) 만들기
+   ========================================================= */
+const C = { s1: 'var(--shade)', s2: 'var(--shade2)', line: 'var(--line)', both: '#e2701a', c1: '#fde0b8', c2: '#c9ebe5' };
+
+// 원(피자) n조각, 앞에서부터 k조각 색칠 (o.set 이 있으면 그 조각들을 색칠)
+function pie(n, k, o = {}) {
+  const size = o.size || 150, r = size / 2 - 5, c = size / 2, color = o.color || C.s1;
+  const on = i => (o.set ? o.set.has(i) : (o.only != null ? i === o.only : i < k));
+  let s = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+  if (n === 1) {
+    s += `<circle cx="${c}" cy="${c}" r="${r}" fill="${on(0) ? color : '#fff'}" stroke="${C.line}" stroke-width="3" class="${o.click ? 'pc' : ''}" data-i="0"/>`;
+  } else {
+    for (let i = 0; i < n; i++) {
+      const a0 = (-90 + 360 * i / n) * Math.PI / 180, a1 = (-90 + 360 * (i + 1) / n) * Math.PI / 180;
+      const x0 = c + r * Math.cos(a0), y0 = c + r * Math.sin(a0), x1 = c + r * Math.cos(a1), y1 = c + r * Math.sin(a1);
+      s += `<path d="M${c} ${c} L${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${360 / n > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z"
+        fill="${on(i) ? color : '#fff'}" stroke="${C.line}" stroke-width="3" stroke-linejoin="round" class="${o.click ? 'pc' : ''}" data-i="${i}"/>`;
+    }
+  }
+  return s + '</svg>';
+}
+
+// 띠(막대) n칸, 앞에서부터 k칸 색칠
+function bar(n, k, o = {}) {
+  const w = o.w || 300, h = o.h || 48, cw = (w - 6) / n, color = o.color || C.s1;
+  const on = i => (o.set ? o.set.has(i) : i < k);
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`;
+  for (let i = 0; i < n; i++) {
+    s += `<rect x="${(3 + i * cw).toFixed(2)}" y="3" width="${cw.toFixed(2)}" height="${h - 6}" fill="${on(i) ? color : '#fff'}"
+      stroke="${C.line}" stroke-width="3" class="${o.click ? 'pc' : ''}" data-i="${i}"/>`;
+  }
+  return s + '</svg>';
+}
+
+// 넓이 격자: 세로로 b칸 중 a칸, 가로로 d칸 중 c칸 (겹친 곳 진하게)
+function grid(b, a, d, c, o = {}) {
+  const size = o.size || 200, cw = (size - 6) / b, ch = (size - 6) / d;
+  let s = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+  for (let i = 0; i < b; i++) for (let j = 0; j < d; j++) {
+    const inC = i < a, inR = j < c;
+    const fill = inC && inR ? C.both : inC ? C.c1 : inR ? C.c2 : '#fff';
+    s += `<rect x="${(3 + i * cw).toFixed(2)}" y="${(3 + j * ch).toFixed(2)}" width="${cw.toFixed(2)}" height="${ch.toFixed(2)}" fill="${fill}" stroke="${C.line}" stroke-width="2"/>`;
+  }
+  s += `<rect x="3" y="3" width="${size - 6}" height="${size - 6}" fill="none" stroke="${C.line}" stroke-width="4"/>`;
+  return s + '</svg>';
+}
+
+// 수직선: min~max, 점(points), 화살표(arrows), 터치해서 점 찍기(click)
+function numLine(o) {
+  const min = o.min, max = o.max, w = o.w || 660, pad = 34;
+  const nArr = (o.arrows || []).length;
+  const h = 78 + nArr * 26, y = h - 40;
+  const step = (w - 2 * pad) / (max - min), X = v => pad + (v - min) * step;
+  const labelOn = v => o.labels === 'all' || (Array.isArray(o.labels) ? o.labels.includes(v) : v === 0);
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="overflow:visible">`;
+  s += `<line x1="${pad - 22}" y1="${y}" x2="${w - pad + 22}" y2="${y}" stroke="${C.line}" stroke-width="3"/>`;
+  s += `<path d="M${w - pad + 26} ${y} l-12 -7 v14 z M${pad - 26} ${y} l12 -7 v14 z" fill="${C.line}"/>`;
+  for (let v = min; v <= max; v++) {
+    const t = v === 0 ? 13 : 8;
+    s += `<line x1="${X(v)}" y1="${y - t}" x2="${X(v)}" y2="${y + t}" stroke="${C.line}" stroke-width="${v === 0 ? 4 : 2.5}"/>`;
+    if (labelOn(v)) s += `<text x="${X(v)}" y="${y + 34}" text-anchor="middle" font-size="19" font-weight="700" fill="var(--ink)">${N(v)}</text>`;
+  }
+  (o.arrows || []).forEach((a, i) => {
+    const ay = y - 26 - i * 26, x1 = X(a.from), x2 = X(a.to), dir = Math.sign(x2 - x1) || 1, col = a.color || (i % 2 ? C.s2 : C.s1);
+    s += `<line x1="${x1}" y1="${y}" x2="${x1}" y2="${ay}" stroke="${col}" stroke-width="2" stroke-dasharray="3 4"/>`;
+    s += `<line x1="${x1}" y1="${ay}" x2="${x2 - dir * 10}" y2="${ay}" stroke="${col}" stroke-width="5" stroke-linecap="round"/>`;
+    s += `<path d="M${x2} ${ay} l${-dir * 14} -9 v18 z" fill="${col}"/>`;
+    if (a.text) s += `<text x="${(x1 + x2) / 2}" y="${ay - 8}" text-anchor="middle" font-size="16" font-weight="700" fill="${col}">${a.text}</text>`;
+  });
+  (o.points || []).forEach(v => {
+    s += `<circle cx="${X(v)}" cy="${y}" r="10" fill="var(--accent)" stroke="#fff" stroke-width="3"/>`;
+  });
+  if (o.click) {
+    if (o.sel != null) s += `<circle cx="${X(o.sel)}" cy="${y}" r="12" fill="var(--accent)" stroke="#fff" stroke-width="3"/>`;
+    for (let v = min; v <= max; v++) s += `<rect class="nlhit" data-v="${v}" x="${X(v) - step / 2}" y="0" width="${step}" height="${h}" fill="transparent"/>`;
+  }
+  return s + '</svg>';
+}
+
+// 바둑돌: + 돌 p개, − 돌 m개, 짝 지은 것은 흐리게
+function chips(p, m) {
+  const r = 22, gap = 56, cols = Math.max(p, m), w = cols * gap + 20, h = 150, pairs = Math.min(p, m);
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`;
+  for (let i = 0; i < cols; i++) {
+    const x = 32 + i * gap, paired = i < pairs;
+    if (paired) s += `<line x1="${x}" y1="38" x2="${x}" y2="112" stroke="#9aa6b1" stroke-width="3" stroke-dasharray="5 5"/>`;
+    if (i < p) s += `<g opacity="${paired ? .35 : 1}"><circle cx="${x}" cy="36" r="${r}" fill="${C.s1}" stroke="${C.line}" stroke-width="2.5"/><text x="${x}" y="45" text-anchor="middle" font-size="28" font-weight="900" fill="#fff">+</text></g>`;
+    if (i < m) s += `<g opacity="${paired ? .35 : 1}"><circle cx="${x}" cy="114" r="${r}" fill="${C.s2}" stroke="${C.line}" stroke-width="2.5"/><text x="${x}" y="123" text-anchor="middle" font-size="30" font-weight="900" fill="#fff">${M}</text></g>`;
+  }
+  return s + '</svg>';
+}
+
+// 그림 여러 개를 이름표와 함께 세로로 쌓기
+const stack = rows => `<div class="stack">${rows.map(([l, svg]) => `<div class="row"><span class="rl">${l}</span>${svg}</div>`).join('')}</div>`;
+const eqrow = parts => `<div class="eqrow">${parts.map(p => (p.length <= 2 ? `<span class="op">${p}</span>` : p)).join('')}</div>`;
+
+/* =========================================================
+   단원 정보 — 원리 카드와 문제 틀
+   문제 하나 = { ask: 안내문, q: 식({ANS}=답칸, {CH}=기호칸), pic: 그림,
+                kind: 'frac'|'int'|'choice'|'shade'|'numline', ans: 정답,
+                choices, hint: 힌트, ex: 그림 풀이, noRed: 약분 검사 안 함 }
+   ========================================================= */
+const A = '{ANS}', CH = '{CH}';
+
+// 분모 짝 고르기 (공배수가 MAX_DEN 이하인 것만)
+function denPair() {
+  const opts = [];
+  for (let a = 2; a <= 6; a++) for (let b = a + 1; b <= CONFIG.MAX_DEN; b++) if (lcm(a, b) <= CONFIG.MAX_DEN) opts.push([a, b]);
+  return shuffle(pick(opts));
+}
+const cmpSym = c => (c > 0 ? '>' : c < 0 ? '<' : '=');
+
+const UNITS = [
+/* ---------------- ① 분수의 뜻과 크기 비교 ---------------- */
+{
+  title: '분수의 뜻과 크기 비교', short: '분수의 뜻',
+  cards: () => [
+    { pic: pie(4, 3, { size: 170 }), text: `피자를 <b>똑같이 4조각</b>으로 나눠 <b>3조각</b>을 색칠하면 ${F(3, 4)}<br><small>분모 = 똑같이 나눈 조각 수, 분자 = 색칠한 조각 수</small>` },
+    { pic: stack([[F(3, 8), bar(8, 3)], [F(5, 8), bar(8, 5)]]), text: `분모가 같으면 한 조각의 크기가 같아요.<br>조각이 더 많은 쪽이 커요 → ${F(5, 8)} &gt; ${F(3, 8)}` },
+    { pic: stack([[F(1, 2), bar(2, 1)], [F(1, 3), bar(3, 1)], [F(1, 4), bar(4, 1)]]), text: `분자가 1이면, <b>많이 나눌수록</b> 한 조각이 작아져요.<br>${F(1, 2)} &gt; ${F(1, 3)} &gt; ${F(1, 4)}` },
+  ],
+  types: [
+    () => { // 그림 보고 분수 쓰기
+      const n = ri(2, 8), k = ri(1, n - 1), shape = pick(['pie', 'bar']);
+      const pic = shape === 'pie' ? pie(n, k) : bar(n, k);
+      return { ask: '색칠한 부분을 분수로 나타내 보세요.', pic, q: `색칠한 부분 = ${A}`, kind: 'frac', ans: new Fr(k, n), noRed: true,
+        hint: `전체를 몇 조각으로 나눴나요? 그게 <b>분모</b>(아래 칸)예요. 색칠한 조각 수가 <b>분자</b>(위 칸)예요.`,
+        ex: `${pic}<br>전체 <b>${n}</b>조각 중 <b>${k}</b>조각 → ${F(k, n)}` };
+    },
+    () => { // 분수만큼 색칠하기
+      const n = ri(3, 8), k = ri(1, n - 1), shape = pick(['pie', 'bar']);
+      return { ask: `${F(k, n)} 만큼 색칠해 보세요. <small>(조각을 눌러요)</small>`, q: '', kind: 'shade', shape, n, ans: k,
+        hint: `분모 ${n}: 전체가 ${n}조각이에요. 분자 ${k}: ${k}조각을 색칠해요.`,
+        ex: `${shape === 'pie' ? pie(n, k) : bar(n, k)}<br>${F(k, n)} → ${n}조각 중 <b>${k}조각</b> 색칠` };
+    },
+    () => { // 분모가 같은 크기 비교
+      const d = ri(3, CONFIG.MAX_DEN), a = ri(1, d - 1); let b = a;
+      if (Math.random() > .15) { do { b = ri(1, d - 1); } while (b === a && d > 2); }
+      return { ask: '알맞은 기호를 고르세요.', q: `${F(a, d)} ${CH} ${F(b, d)}`, kind: 'choice', choices: ['>', '<', '='], ans: cmpSym(a - b),
+        hint: '분모가 같으면 조각 크기가 같아요. <b>분자가 큰 쪽</b>이 더 커요.',
+        ex: `${stack([[F(a, d), bar(d, a, { w: 260 })], [F(b, d), bar(d, b, { w: 260 })]])}<br>분자 ${a}, ${b}를 비교 → ${F(a, d)} ${cmpSym(a - b)} ${F(b, d)}` };
+    },
+    () => { // 단위분수 크기 비교
+      const a = ri(2, 10); let b; do { b = ri(2, 10); } while (b === a);
+      return { ask: '알맞은 기호를 고르세요.', q: `${F(1, a)} ${CH} ${F(1, b)}`, kind: 'choice', choices: ['>', '<', '='], ans: cmpSym(b - a),
+        hint: '분자가 1이면 <b>분모가 작을수록</b> 커요. 적게 나눌수록 한 조각이 크니까요!',
+        ex: `${stack([[F(1, a), bar(a, 1, { w: 260 })], [F(1, b), bar(b, 1, { w: 260 })]])}<br>${a}조각으로 나눈 것과 ${b}조각으로 나눈 것 → ${F(1, a)} ${cmpSym(b - a)} ${F(1, b)}` };
+    },
+  ],
+},
+/* ---------------- ② 약분과 통분 ---------------- */
+{
+  title: '약분과 통분', short: '약분·통분',
+  cards: () => [
+    { pic: stack([[F(1, 2), bar(2, 1)], [F(2, 4), bar(4, 2)], [F(4, 8), bar(8, 4)]]), text: `더 잘게 나눠도 색칠한 양은 그대로!<br>${F(1, 2)} = ${F(2, 4)} = ${F(4, 8)} — 분모와 분자에 <b>같은 수를 곱해도</b> 크기가 같아요.` },
+    { pic: stack([[F(6, 8), bar(8, 6)], [F(3, 4), bar(4, 3)]]), text: `<b>약분</b>: 분모와 분자를 같은 수로 나누기<br>${F(6, 8)} → 둘 다 ÷2 → ${F(3, 4)}<br><small>더 이상 나눌 수 없는 분수를 <b>기약분수</b>라고 해요</small>` },
+    { pic: stack([[F(3, 6), bar(6, 3)], [F(2, 6), bar(6, 2, { color: C.s2 })]]), text: `<b>통분</b>: 분모를 같게 만들기<br>${F(1, 2)}, ${F(1, 3)} → ${F(3, 6)}, ${F(2, 6)}<br><small>공통분모 6은 2와 3의 공통인 배수</small>` },
+  ],
+  types: [
+    () => { // 그림 보고 크기가 같은 분수
+      const b = ri(2, 5), a = coprimeNum(b), m = ri(2, 3);
+      const pic = stack([[F(a, b), bar(b, a, { w: 280 })], ['', bar(b * m, a * m, { w: 280 })]]);
+      return { ask: '그림을 보고 빈칸에 알맞은 수를 쓰세요.', pic, q: `${F(a, b)} = <span class="frac"><span class="num">${A}</span><span class="den">${b * m}</span></span>`,
+        kind: 'int', ans: a * m,
+        hint: `분모가 ${b}에서 ${b * m}로 <b>${m}배</b>가 됐어요. 분자도 ${m}배 해요!`,
+        ex: `${pic}<br>${F(a, b)} = ${F(`${a}×${m}`, `${b}×${m}`)} = ${F(a * m, b * m)}` };
+    },
+    () => { // 기약분수로 약분
+      const b = ri(2, 7), a = coprimeNum(b), m = ri(2, 4);
+      return { ask: '기약분수로 나타내세요.', q: `${F(a * m, b * m)} = ${A}`, kind: 'frac', ans: new Fr(a, b),
+        hint: `${a * m}과 ${b * m}을 <b>모두 나눌 수 있는 수</b>를 찾아 나눠요. 더 나눌 수 없을 때까지!`,
+        ex: `${F(a * m, b * m)} → 분모·분자를 ${m}로 나누기 → ${F(a, b)}` };
+    },
+    () => { // 가장 작은 공통분모
+      const [d1, d2] = denPair(), n1 = coprimeNum(d1), n2 = coprimeNum(d2), L = lcm(d1, d2);
+      const mult = d => Array.from({ length: Math.ceil(L / d) + 1 }, (_, i) => d * (i + 1)).map(v => (v === L ? `<b>${v}</b>` : v)).join(', ');
+      return { ask: '두 분수를 통분하려고 해요. 가장 작은 공통분모는?', q: `${F(n1, d1)}, ${F(n2, d2)} → 공통분모 ${A}`, kind: 'int', ans: L,
+        hint: `${d1}의 배수와 ${d2}의 배수를 차례로 써 보고, 처음으로 같은 수를 찾아요.`,
+        ex: `${d1}의 배수: ${mult(d1)} …<br>${d2}의 배수: ${mult(d2)} …<br>처음 만나는 수 → <b>${L}</b><br>${F(n1, d1)} = ${F(n1 * L / d1, L)}, ${F(n2, d2)} = ${F(n2 * L / d2, L)}` };
+    },
+    () => { // 분모가 다른 크기 비교
+      const [d1, d2] = denPair(), n1 = coprimeNum(d1), n2 = coprimeNum(d2), L = lcm(d1, d2);
+      const c = new Fr(n1, d1).cmp(new Fr(n2, d2));
+      return { ask: '알맞은 기호를 고르세요.', q: `${F(n1, d1)} ${CH} ${F(n2, d2)}`, kind: 'choice', choices: ['>', '<', '='], ans: cmpSym(c),
+        hint: '먼저 <b>통분</b>해서 분모를 같게 만든 다음, 분자를 비교해요.',
+        ex: `통분하면 ${F(n1 * L / d1, L)} ${cmpSym(c)} ${F(n2 * L / d2, L)}<br>${stack([[F(n1, d1), bar(L, n1 * L / d1, { w: 260 })], [F(n2, d2), bar(L, n2 * L / d2, { w: 260, color: C.s2 })]])}` };
+    },
+  ],
+},
+/* ---------------- ③ 분수의 덧셈·뺄셈 ---------------- */
+{
+  title: '분수의 덧셈과 뺄셈', short: '분수 덧셈·뺄셈',
+  cards: () => [
+    { pic: eqrow([pie(4, 1, { size: 120 }), '+', pie(4, 2, { size: 120, color: C.s2 }), '=', pie(4, 3, { size: 120 })]), text: `조각 크기가 같으면 <b>조각 수만</b> 더해요. 분모는 그대로!<br>${F(1, 4)} + ${F(2, 4)} = ${F(3, 4)}` },
+    { pic: stack([[F(1, 2), bar(2, 1)], [F(1, 3), bar(3, 1, { color: C.s2 })], [F(5, 6), bar(6, 5)]]), text: `조각 크기가 다르면 먼저 <b>통분</b>!<br>${F(1, 2)} + ${F(1, 3)} = ${F(3, 6)} + ${F(2, 6)} = ${F(5, 6)}` },
+    { pic: stack([[F(5, 6), bar(6, 5)], [F(3, 6), bar(6, 3)]]), text: `뺄셈도 똑같아요.<br>${F(5, 6)} − ${F(2, 6)} = ${F(3, 6)} = ${F(1, 2)}<br><small>마지막에 약분할 수 있는지 꼭 확인!</small>` },
+  ],
+  types: [
+    () => { // 그림 보고 분모 같은 덧셈
+      const d = ri(3, 8), a = ri(1, d - 1), b = ri(1, d - a);
+      const pic = stack([[F(a, d), bar(d, a, { w: 280 })], [F(b, d), bar(d, b, { w: 280, color: C.s2 })]]);
+      return { ask: '그림을 보고 계산해 보세요.', pic, q: `${F(a, d)} + ${F(b, d)} = ${A}`, kind: 'frac', ans: new Fr(a + b, d),
+        hint: '분모가 같으니까 색칠한 조각 수만 더해요. 분모는 그대로!',
+        ex: `${bar(d, a + b, { w: 280 })}<br>${a} + ${b} = ${a + b}조각 → ${VR(a + b, d)}` };
+    },
+    () => { // 분모 같은 덧셈·뺄셈
+      const d = ri(3, CONFIG.MAX_DEN), plus = Math.random() < .5;
+      let a, b; if (plus) { a = ri(1, d - 1); b = ri(1, d - 1); } else { a = ri(2, d - 1); b = ri(1, a - 1); }
+      const r = plus ? a + b : a - b, op = plus ? '+' : M;
+      return { ask: '계산해 보세요.', q: `${F(a, d)} ${op} ${F(b, d)} = ${A}`, kind: 'frac', ans: new Fr(r, d),
+        hint: `분모가 같으면 분자끼리만 ${plus ? '더해요' : '빼요'}. 답이 1보다 커도 괜찮아요(가분수).`,
+        ex: `${F(`${a} ${op} ${b}`, d)} = ${VR(r, d)}` };
+    },
+    () => { // 분모 다른 덧셈
+      const [d1, d2] = denPair(), n1 = coprimeNum(d1), n2 = coprimeNum(d2), L = lcm(d1, d2);
+      const a = n1 * L / d1, b = n2 * L / d2;
+      return { ask: '계산해 보세요.', q: `${F(n1, d1)} + ${F(n2, d2)} = ${A}`, kind: 'frac', ans: new Fr(a + b, L),
+        hint: `분모가 달라요! 먼저 공통분모 <b>${L}</b>로 통분해요.`,
+        ex: `${F(n1, d1)} + ${F(n2, d2)} = ${F(a, L)} + ${F(b, L)} = ${VR(a + b, L)}` };
+    },
+    () => { // 분모 다른 뺄셈
+      let d1, d2, n1, n2; do { [d1, d2] = denPair(); n1 = coprimeNum(d1); n2 = coprimeNum(d2); } while (new Fr(n1, d1).cmp(new Fr(n2, d2)) <= 0);
+      const L = lcm(d1, d2), a = n1 * L / d1, b = n2 * L / d2;
+      return { ask: '계산해 보세요.', q: `${F(n1, d1)} ${M} ${F(n2, d2)} = ${A}`, kind: 'frac', ans: new Fr(a - b, L),
+        hint: `먼저 공통분모 <b>${L}</b>로 통분한 다음 분자끼리 빼요.`,
+        ex: `${F(n1, d1)} ${M} ${F(n2, d2)} = ${F(a, L)} ${M} ${F(b, L)} = ${VR(a - b, L)}` };
+    },
+  ],
+},
+/* ---------------- ④ 분수의 곱셈 ---------------- */
+{
+  title: '분수의 곱셈', short: '분수 곱셈',
+  cards: () => [
+    { pic: stack([['', bar(4, 1, { w: 220 })], ['', bar(4, 1, { w: 220 })], ['', bar(4, 1, { w: 220 })], ['=', bar(4, 3, { w: 220 })]]), text: `3 × ${F(1, 4)} = ${F(1, 4)}이 3개 = ${F(3, 4)}<br><small>자연수 × 분수는 분자에 곱해요</small>` },
+    { pic: grid(2, 1, 3, 2), text: `${F(1, 2)} × ${F(2, 3)}: 세로로 ${F(1, 2)}, 가로로 ${F(2, 3)}을 칠하면<br>두 번 칠해진 칸 <b>2개</b> ÷ 전체 <b>6칸</b> → ${F(2, 6)} = ${F(1, 3)}` },
+    { pic: `<div class="bigf">${F('●', '■')} × ${F('▲', '◆')} = ${F('●×▲', '■×◆')}</div>`, text: `<b>분자끼리, 분모끼리</b> 곱해요.<br>${F(2, 3)} × ${F(3, 4)} = ${F(6, 12)} = ${F(1, 2)}<br><small>곱하기 전에 약분하면 숫자가 작아져서 쉬워요!</small>` },
+  ],
+  types: [
+    () => { // 자연수 × 분수 (그림)
+      const n = ri(2, 4), b = ri(3, 6), a = ri(1, b - 1);
+      const pic = stack(Array.from({ length: n }, () => ['', bar(b, a, { w: 220, h: 40 })]));
+      return { ask: '그림을 보고 계산해 보세요.', pic, q: `${n} × ${F(a, b)} = ${A}`, kind: 'frac', ans: new Fr(n * a, b),
+        hint: `${F(a, b)}이 ${n}개 있어요. 색칠한 조각을 모두 세어 봐요. 분모는 그대로!`,
+        ex: `${F(a, b)}이 ${n}개 → 조각 ${a} × ${n} = ${n * a}개 → ${VR(n * a, b)}` };
+    },
+    () => { // 분수 × 분수 (넓이 격자)
+      const b = ri(2, 4), a = ri(1, b - 1), d = ri(2, 4), c = ri(1, d - 1);
+      return { ask: `세로로 칠한 부분은 ${F(a, b)}, 가로로 칠한 부분은 ${F(c, d)}예요.<br>두 번 칠해진 <b>진한 칸</b>은 전체의 얼마일까요?`, pic: grid(b, a, d, c),
+        q: `${F(a, b)} × ${F(c, d)} = ${A}`, kind: 'frac', ans: new Fr(a * c, b * d),
+        hint: `진한 칸이 몇 개인지, 전체 칸이 몇 개인지 세어 봐요.`,
+        ex: `진한 칸 ${a}×${c} = <b>${a * c}</b>개, 전체 ${b}×${d} = <b>${b * d}</b>칸 → ${VR(a * c, b * d)}` };
+    },
+    () => { // 분수 × 분수 계산
+      const b = ri(2, 9), a = ri(1, b - 1), d = ri(2, 9), c = ri(1, d - 1);
+      return { ask: '계산해 보세요.', q: `${F(a, b)} × ${F(c, d)} = ${A}`, kind: 'frac', ans: new Fr(a * c, b * d),
+        hint: '분자는 분자끼리, 분모는 분모끼리 곱해요.',
+        ex: `${F(`${a}×${c}`, `${b}×${d}`)} = ${VR(a * c, b * d)}` };
+    },
+    () => { // 약분하며 곱하기
+      const g = ri(2, 3), x = ri(1, 3), y = ri(1, 3), b = g * x < 2 ? g * 2 : g * x, c = g * y;
+      const a = coprimeNum(b); let d; do { d = ri(c + 1, c + 6); } while (gcd(d, c) !== 1);
+      return { ask: '계산해 보세요.', q: `${F(a, b)} × ${F(c, d)} = ${A}`, kind: 'frac', ans: new Fr(a * c, b * d),
+        hint: `곱하기 전에 <b>${b}</b>와 <b>${c}</b>를 같은 수로 약분할 수 있어요!`,
+        ex: `${F(`${a}×${c}`, `${b}×${d}`)} = ${VR(a * c, b * d)}<br><small>${b}와 ${c}를 먼저 약분하면 계산이 쉬워요</small>` };
+    },
+  ],
+},
+/* ---------------- ⑤ 분수의 나눗셈 ---------------- */
+{
+  title: '분수의 나눗셈', short: '분수 나눗셈',
+  cards: () => [
+    { pic: eqrow([pie(4, 0, { size: 110, only: 0 }), pie(4, 0, { size: 110, only: 0 }), pie(4, 0, { size: 110, only: 0 })]), text: `피자 3판을 4명이 똑같이 나누면,<br>한 사람은 판마다 1조각씩 → 3 ÷ 4 = ${F(3, 4)}` },
+    { pic: stack([[F(1, 2), bar(4, 2, { w: 280 })], [F(1, 4), bar(4, 1, { w: 280, color: C.s2 })]]), text: `${F(1, 2)} ÷ ${F(1, 4)}은 "${F(1, 2)} 안에 ${F(1, 4)}이 몇 개?"<br><b>2개</b>! 그래서 답은 2` },
+    { pic: `<div class="bigf">÷ ${F(1, 4)} → × ${F(4, 1)}</div>`, text: `나누는 분수를 <b>뒤집어서 곱해요</b>.<br>${F(1, 2)} ÷ ${F(1, 4)} = ${F(1, 2)} × ${F(4, 1)} = 2` },
+  ],
+  types: [
+    () => { // 자연수 ÷ 자연수 (피자 나누기)
+      const b = ri(2, 6), a = ri(1, b - 1);
+      const pic = eqrow(Array.from({ length: a }, () => pie(b, 0, { size: 100, only: 0 })));
+      return { ask: `피자 ${a}판을 ${b}명이 똑같이 나누어 먹어요. 한 사람 몫은?`, pic, q: `${a} ÷ ${b} = ${A}`, kind: 'frac', ans: new Fr(a, b),
+        hint: `피자 한 판을 ${b}조각으로 나누면 한 사람이 판마다 1조각씩! 피자가 ${a}판이에요.`,
+        ex: `${pic}<br>한 판에서 ${F(1, b)}씩, ${a}판이니까 → ${VR(a, b)}` };
+    },
+    () => { // 분수 ÷ 자연수
+      const b = ri(2, 6), a = ri(1, b - 1), n = ri(2, 4);
+      return { ask: '계산해 보세요.', q: `${F(a, b)} ÷ ${n} = ${A}`, kind: 'frac', ans: new Fr(a, b * n),
+        hint: `÷ ${n}은 × ${F(1, n)}과 같아요.`,
+        ex: `${F(a, b)} ÷ ${n} = ${F(a, b)} × ${F(1, n)} = ${VR(a, b * n)}` };
+    },
+    () => { // 안에 몇 개 들어가나
+      if (Math.random() < .5) {
+        const a = ri(2, 4), m = ri(2, 3), L = a * m;
+        const pic = stack([[F(1, a), bar(L, m, { w: 300 })], [F(1, L), bar(L, 1, { w: 300, color: C.s2 })]]);
+        return { ask: `${F(1, a)} 안에 ${F(1, L)}이 몇 개 들어갈까요?`, pic, q: `${F(1, a)} ÷ ${F(1, L)} = ${A}`, kind: 'int', ans: m,
+          hint: '위 막대에 색칠한 칸에 아래 막대의 칸이 몇 개 들어가는지 세어 봐요.',
+          ex: `${F(1, a)} = ${F(m, L)} → ${F(1, L)}이 <b>${m}</b>개` };
+      }
+      const b = ri(3, 8), k = ri(2, b - 1);
+      const pic = stack([[F(k, b), bar(b, k, { w: 300 })], [F(1, b), bar(b, 1, { w: 300, color: C.s2 })]]);
+      return { ask: `${F(k, b)} 안에 ${F(1, b)}이 몇 개 들어갈까요?`, pic, q: `${F(k, b)} ÷ ${F(1, b)} = ${A}`, kind: 'int', ans: k,
+        hint: '색칠한 칸 안에 한 칸짜리가 몇 개 들어가는지 세어 봐요.',
+        ex: `${F(k, b)}은 ${F(1, b)}이 <b>${k}</b>개` };
+    },
+    () => { // 분수 ÷ 분수
+      const b = ri(2, 9), a = ri(1, b - 1), d = ri(2, 9), c = ri(1, d - 1);
+      return { ask: '계산해 보세요.', q: `${F(a, b)} ÷ ${F(c, d)} = ${A}`, kind: 'frac', ans: new Fr(a * d, b * c),
+        hint: `나누는 수 ${F(c, d)}를 뒤집어서(${F(d, c)}) 곱해요.`,
+        ex: `${F(a, b)} ÷ ${F(c, d)} = ${F(a, b)} × ${F(d, c)} = ${VR(a * d, b * c)}` };
+    },
+  ],
+},
+/* ---------------- ⑥ 수직선·절댓값·대소 비교 ---------------- */
+{
+  title: '수직선과 절댓값, 대소 비교', short: '수직선·절댓값',
+  cards: () => [
+    { pic: numLine({ min: -5, max: 5, labels: 'all', w: 620 }), text: `0의 오른쪽은 <b>양수(+)</b>, 왼쪽은 <b>음수(${M})</b><br><small>+3은 오른쪽으로 3칸, ${M}3은 왼쪽으로 3칸</small>` },
+    { pic: numLine({ min: -5, max: 5, labels: 'all', w: 620, arrows: [{ from: 0, to: -3, text: '3칸' }, { from: 0, to: 3, text: '3칸' }] }), text: `<b>절댓값</b> = 0에서 떨어진 거리<br>|${M}3| = 3, |+3| = 3` },
+    { pic: numLine({ min: -5, max: 5, labels: 'all', w: 620, points: [-4, -1] }), text: `수직선에서 <b>오른쪽</b>에 있을수록 커요.<br>${M}1 &gt; ${M}4 <small>(${M}4가 더 왼쪽)</small>` },
+  ],
+  types: [
+    () => { // 점이 나타내는 수 읽기
+      const x = nz(-6, 6);
+      const pic = numLine({ min: -7, max: 7, labels: [-5, 0, 5], points: [x] });
+      return { ask: '수직선 위의 점이 나타내는 수를 쓰세요.', pic, q: `점이 나타내는 수 = ${A}`, kind: 'int', ans: x,
+        hint: `0에서 몇 칸 떨어졌는지 세어 봐요. 0의 왼쪽이면 ${M}를 붙여요(${M} 버튼).`,
+        ex: `${numLine({ min: -7, max: 7, labels: 'all', points: [x] })}<br>0의 ${x > 0 ? '오른쪽' : '왼쪽'}으로 ${Math.abs(x)}칸 → <b>${N(x)}</b>` };
+    },
+    () => { // 수직선에 점 찍기
+      const x = nz(-6, 6);
+      return { ask: `수직선 위에 <b>${N(x)}</b>을 나타내는 점을 찍어 보세요. <small>(눈금을 눌러요)</small>`, q: '', kind: 'numline', line: { min: -7, max: 7, labels: [-5, 0, 5] }, ans: x,
+        hint: `${x > 0 ? '양수는 0의 오른쪽' : '음수는 0의 왼쪽'}이에요. 0에서 ${Math.abs(x)}칸!`,
+        ex: `${numLine({ min: -7, max: 7, labels: 'all', points: [x] })}<br>0의 ${x > 0 ? '오른쪽' : '왼쪽'}으로 ${Math.abs(x)}칸` };
+    },
+    () => { // 절댓값
+      const x = nz(-CONFIG.INT_RANGE, CONFIG.INT_RANGE);
+      return { ask: '절댓값을 구하세요.', q: `|${N(x)}| = ${A}`, kind: 'int', ans: Math.abs(x),
+        hint: '절댓값은 0에서 얼마나 떨어져 있는지예요. <b>부호를 떼면</b> 돼요.',
+        ex: `${N(x)}은 0에서 ${Math.abs(x)}만큼 떨어져 있어요 → |${N(x)}| = <b>${Math.abs(x)}</b>` };
+    },
+    () => { // 대소 비교
+      let a, b; do { a = nz(-9, 9); b = nz(-9, 9); } while (a === b || (a > 0 && b > 0));
+      return { ask: '알맞은 기호를 고르세요.', q: `${N(a)} ${CH} ${N(b)}`, kind: 'choice', choices: ['>', '<'], ans: cmpSym(a - b),
+        hint: `수직선에서 <b>오른쪽</b>에 있는 수가 더 커요. 음수는 0에서 멀수록 작아요.`,
+        ex: `${numLine({ min: -10, max: 10, labels: [a, b, 0], points: [a, b], w: 640 })}<br>${a > b ? N(a) : N(b)}이 더 오른쪽 → ${N(a)} ${cmpSym(a - b)} ${N(b)}` };
+    },
+  ],
+},
+/* ---------------- ⑦ 정수의 덧셈·뺄셈 ---------------- */
+{
+  title: '정수의 덧셈과 뺄셈', short: '정수 덧셈·뺄셈',
+  cards: () => [
+    { pic: numLine({ min: -5, max: 5, labels: 'all', w: 620, arrows: [{ from: 0, to: 3, text: '+3' }, { from: 3, to: -2, text: `${M}5` }] }), text: `(+3) + (${M}5): 오른쪽으로 3칸, 왼쪽으로 5칸 → <b>${M}2</b>` },
+    { pic: chips(3, 5), text: `+ 돌과 ${M} 돌이 만나면 0이 돼요.<br>짝을 지우면 ${M} 돌 2개가 남아요 → (+3) + (${M}5) = <b>${M}2</b>` },
+    { pic: `<div class="bigf">${M} (${M}3) → + (+3)</div>`, text: `<b>빼기는 부호를 바꿔서 더하기!</b><br>(+2) ${M} (${M}3) = (+2) + (+3) = +5` },
+  ],
+  types: [
+    () => { // 수직선 화살표 보고 계산
+      let a, b; do { a = nz(-5, 5); b = nz(-5, 5); } while (Math.abs(a + b) > 7);
+      const pic = numLine({ min: -8, max: 8, labels: [-5, 0, 5], arrows: [{ from: 0, to: a }, { from: a, to: a + b }] });
+      return { ask: '수직선을 보고 계산해 보세요.', pic, q: `${S(a)} + ${S(b)} = ${A}`, kind: 'int', ans: a + b,
+        hint: '두 번째 화살표가 끝나는 곳이 답이에요. 0에서 몇 칸인지 세어 봐요.',
+        ex: `${numLine({ min: -8, max: 8, labels: 'all', arrows: [{ from: 0, to: a }, { from: a, to: a + b }], points: [a + b] })}<br>0 → ${N(a)} → <b>${N(a + b)}</b>` };
+    },
+    () => { // 같은 부호끼리 덧셈
+      const s = sgn(), a = ri(1, 9) * s, b = ri(1, 9) * s;
+      return { ask: '계산해 보세요.', q: `${S(a)} + ${S(b)} = ${A}`, kind: 'int', ans: a + b,
+        hint: '부호가 같으면 <b>절댓값끼리 더하고</b>, 그 부호를 그대로 붙여요.',
+        ex: `부호가 같아요(${s > 0 ? '+' : M}) → ${Math.abs(a)} + ${Math.abs(b)} = ${Math.abs(a + b)} → <b>${N(a + b)}</b>` };
+    },
+    () => { // 다른 부호끼리 덧셈
+      const s = sgn(); let a, b; do { a = ri(1, 12) * s; b = ri(1, 12) * -s; } while (a + b === 0 && Math.random() < .7);
+      const big = Math.abs(a) > Math.abs(b) ? a : b;
+      return { ask: '계산해 보세요.', q: `${S(a)} + ${S(b)} = ${A}`, kind: 'int', ans: a + b,
+        hint: '부호가 다르면 + 돌과 − 돌이 짝지어 사라져요. <b>큰 절댓값 − 작은 절댓값</b>, 부호는 절댓값이 큰 쪽!',
+        ex: `${chips(Math.max(a, b), -Math.min(a, b)).replace('<svg', '<svg style="max-width:100%"')}<br>${Math.max(Math.abs(a), Math.abs(b))} ${M} ${Math.min(Math.abs(a), Math.abs(b))} = ${Math.abs(a + b)}${a + b ? `, 절댓값이 큰 ${S(big)}의 부호` : ''} → <b>${N(a + b)}</b>` };
+    },
+    () => { // 뺄셈
+      const a = nz(-10, 10), b = nz(-10, 10);
+      return { ask: '계산해 보세요.', q: `${S(a)} ${M} ${S(b)} = ${A}`, kind: 'int', ans: a - b,
+        hint: `빼기를 더하기로 바꾸고, 빼는 수 ${S(b)}의 부호를 바꿔요 → ${S(-b)}`,
+        ex: `${S(a)} ${M} ${S(b)} = ${S(a)} + ${S(-b)} = <b>${N(a - b)}</b>` };
+    },
+  ],
+},
+/* ---------------- ⑧ 정수의 곱셈·나눗셈 ---------------- */
+{
+  title: '정수의 곱셈과 나눗셈', short: '정수 곱셈·나눗셈',
+  cards: () => [
+    { pic: numLine({ min: -7, max: 7, labels: 'all', w: 640, arrows: [{ from: 0, to: 2 }, { from: 2, to: 4 }, { from: 4, to: 6 }] }), text: `(+2) × (+3): 오른쪽으로 2칸씩 3번 → <b>+6</b>` },
+    { pic: numLine({ min: -7, max: 7, labels: 'all', w: 640, arrows: [{ from: 0, to: -2 }, { from: -2, to: -4 }, { from: -4, to: -6 }] }), text: `(+2) × (${M}3) = <b>${M}6</b><br>${M}를 곱하면 <b>방향이 반대</b>가 돼요!` },
+    { pic: `<table class="signtbl"><tr><td>(+) × (+)</td><td class="p">+</td><td>(${M}) × (${M})</td><td class="p">+</td></tr><tr><td>(+) × (${M})</td><td class="m">${M}</td><td>(${M}) × (+)</td><td class="m">${M}</td></tr></table>`, text: `<b>부호가 같으면 +, 다르면 ${M}</b><br>나눗셈도 똑같아요. 음수가 짝수 개면 +, 홀수 개면 ${M}` },
+  ],
+  types: [
+    () => { // 부호 고르기
+      const a = nz(-9, 9), b = nz(-9, 9), op = pick(['×', '÷']);
+      const A2 = op === '÷' ? a * b : a; // 나눗셈은 나누어떨어지게
+      return { ask: '계산 결과의 <b>부호</b>를 고르세요.', q: `${S(A2)} ${op} ${S(b)} 의 부호 ${CH}`, kind: 'choice', choices: ['+', M], ans: (A2 * b > 0 ? '+' : M),
+        hint: '두 수의 부호가 같으면 +, 다르면 −예요.',
+        ex: `${S(A2)}와 ${S(b)}의 부호가 ${(A2 > 0) === (b > 0) ? '같아요 → <b>+</b>' : `달라요 → <b>${M}</b>`}` };
+    },
+    () => { // 곱셈
+      const a = ri(1, 9) * sgn(), b = ri(1, 9) * sgn();
+      return { ask: '계산해 보세요.', q: `${S(a)} × ${S(b)} = ${A}`, kind: 'int', ans: a * b,
+        hint: '절댓값끼리 곱하고, 부호가 같으면 +, 다르면 −를 붙여요.',
+        ex: `${Math.abs(a)} × ${Math.abs(b)} = ${Math.abs(a * b)}, 부호가 ${(a > 0) === (b > 0) ? '같아요 → +' : `달라요 → ${M}`} → <b>${N(a * b)}</b>` };
+    },
+    () => { // 나눗셈
+      const b = ri(2, 9) * sgn(), q = ri(1, 9) * sgn(), a = b * q;
+      return { ask: '계산해 보세요.', q: `${S(a)} ÷ ${S(b)} = ${A}`, kind: 'int', ans: q,
+        hint: '절댓값끼리 나누고, 부호는 곱셈과 똑같이 정해요.',
+        ex: `${Math.abs(a)} ÷ ${Math.abs(b)} = ${Math.abs(q)}, 부호가 ${(a > 0) === (b > 0) ? '같아요 → +' : `달라요 → ${M}`} → <b>${N(q)}</b>` };
+    },
+    () => { // 세 수의 곱
+      const a = nz(-5, 5), b = nz(-5, 5), c = nz(-5, 5), negs = [a, b, c].filter(v => v < 0).length;
+      return { ask: '계산해 보세요.', q: `${S(a)} × ${S(b)} × ${S(c)} = ${A}`, kind: 'int', ans: a * b * c,
+        hint: '먼저 음수가 몇 개인지 세어 봐요. 짝수 개면 +, 홀수 개면 −!',
+        ex: `음수 ${negs}개 → ${negs % 2 ? `${M}` : '+'}, ${Math.abs(a)}×${Math.abs(b)}×${Math.abs(c)} = ${Math.abs(a * b * c)} → <b>${N(a * b * c)}</b>` };
+    },
+  ],
+},
+/* ---------------- ⑨ 유리수의 사칙연산 ---------------- */
+{
+  title: '유리수의 사칙연산', short: '유리수 계산',
+  cards: () => [
+    { pic: `<div class="bigf">${SV(new Fr(-3, 4))} &nbsp; ${SV(new Fr(5, 2))} &nbsp; (${M}2)</div>`, text: `유리수 = 분수 + 부호<br>계산은 <b>분수처럼</b>, 부호는 <b>정수처럼</b>!` },
+    { pic: `<div class="bigf">(${M}${F(1, 2)}) + (+${F(1, 3)})<br>= (${M}${F(3, 6)}) + (+${F(2, 6)}) = ${M}${F(1, 6)}</div>`, text: `먼저 <b>통분</b>하고, 정수 덧셈처럼 부호를 정해요.` },
+    { pic: `<div class="bigf">${M}${F(3, 4)} 의 역수 → ${M}${F(4, 3)}</div>`, text: `<b>역수</b>: 곱해서 1이 되는 수 (분자·분모를 뒤집기, 부호는 그대로)<br>나눗셈은 <b>역수를 곱해요</b>: (${M}${F(1, 2)}) ÷ (+${F(1, 4)}) = (${M}${F(1, 2)}) × (+4) = ${M}2` },
+  ],
+  types: [
+    () => { // 덧셈·뺄셈
+      let x, y, plus, r;
+      do {
+        const [d1, d2] = denPair();
+        x = new Fr(ri(1, d1 - 1) * sgn(), d1).red(); y = new Fr(ri(1, d2 - 1) * sgn(), d2).red(); plus = Math.random() < .5;
+        r = plus ? x.add(y) : x.sub(y);
+      } while (r.n === 0 || x.d === 1 || y.d === 1);
+      const L = lcm(x.d, y.d), op = plus ? '+' : M;
+      return { ask: '계산해 보세요.', q: `${SV(x)} ${op} ${SV(y)} = ${A}`, kind: 'frac', ans: r,
+        hint: `먼저 공통분모 ${L}로 통분해요.${plus ? '' : ' 빼기는 부호를 바꿔 더하기!'}`,
+        ex: `${SV(new Fr(x.n * L / x.d, L))} ${op} ${SV(new Fr(y.n * L / y.d, L))} = ${VR(plus ? (x.n * L / x.d + y.n * L / y.d) : (x.n * L / x.d - y.n * L / y.d), L)}` };
+    },
+    () => { // 곱셈
+      const x = new Fr(ri(1, 5) * sgn(), ri(2, 7)), y = new Fr(ri(1, 5) * sgn(), ri(2, 7));
+      return { ask: '계산해 보세요.', q: `${SV(x)} × ${SV(y)} = ${A}`, kind: 'frac', ans: x.mul(y),
+        hint: '부호를 먼저 정하고(같으면 +, 다르면 −), 분수 곱셈을 해요.',
+        ex: `부호: ${(x.n > 0) === (y.n > 0) ? '+' : M}, ${F(`${Math.abs(x.n)}×${Math.abs(y.n)}`, `${x.d}×${y.d}`)} → ${V(x.mul(y))}` };
+    },
+    () => { // 역수
+      let x;
+      if (Math.random() < .25) x = new Fr(nz(-9, 9) || 2, 1);
+      else { const b = ri(2, 9); x = new Fr(coprimeNum(b) * sgn(), b); if (Math.random() < .3) x = new Fr(x.d * sgn(), Math.abs(x.n) === 1 ? 3 : Math.abs(x.n)).red(); }
+      if (x.n === 0) x = new Fr(-2, 3);
+      const r = new Fr(x.d, x.n);
+      return { ask: '역수를 구하세요.', q: `${V(x)} 의 역수 = ${A}`, kind: 'frac', ans: r,
+        hint: '분자와 분모를 뒤집어요. <b>부호는 그대로!</b> (정수는 분모가 1인 분수로 생각해요)',
+        ex: `${V(x)} × ${V(r)} = 1 → 역수는 <b>${V(r)}</b>` };
+    },
+    () => { // 나눗셈
+      const x = new Fr(ri(1, 6) * sgn(), ri(2, 7)), y = new Fr(ri(1, 6) * sgn(), ri(2, 7));
+      const inv = new Fr(y.d, y.n);
+      return { ask: '계산해 보세요.', q: `${SV(x)} ÷ ${SV(y)} = ${A}`, kind: 'frac', ans: x.div(y),
+        hint: '나누는 수의 역수를 곱해요. 부호는 같으면 +, 다르면 −!',
+        ex: `${SV(x)} × ${SV(inv)} = ${V(x.div(y))}` };
+    },
+  ],
+},
+];
+
+/* =========================================================
+   저장 (이 태블릿 안에만 남습니다)
+   ========================================================= */
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(STORE_KEY)); if (s && typeof s === 'object') return Object.assign({ name: '', passed: {}, allOpen: false }, s); } catch (e) {}
+  return { name: '', passed: {}, allOpen: false };
+}
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {} }
+let store = load();
+const today = () => { const t = new Date(); return `${t.getFullYear()}. ${t.getMonth() + 1}. ${t.getDate()}.`; };
+const isPassed = u => !!store.passed[u];
+const isOpen = u => u === 0 || store.allOpen || isPassed(u) || isPassed(u - 1);
+const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
+
+/* =========================================================
+   화면 전환과 창
+   ========================================================= */
+const $ = id => document.getElementById(id);
+function go(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
+function openModal(html, wide) { $('mbox').className = 'mbox' + (wide ? ' wide' : ''); $('mbox').innerHTML = html; $('modal').classList.remove('hidden'); }
+function closeModal() { $('modal').classList.add('hidden'); }
+document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { if (b.dataset.go === 'map') renderMap(); go(b.dataset.go); });
+
+/* =========================================================
+   1. 징검다리 지도
+   ========================================================= */
+let justPassed = null; // 방금 합격한 단원 → 도장 효과
+function renderMap() {
+  $('nameText').textContent = store.name || '';
+  const lane = (title, from, to) => `<div class="lane"><h3>${title}</h3><div class="stream">` +
+    UNITS.slice(from, to).map((u, i) => {
+      const k = from + i, passed = isPassed(k), open = isOpen(k);
+      const cls = passed ? 'passed' : open ? 'current' : 'locked';
+      return `<button class="stone ${cls} ${justPassed === k ? 'stamp' : ''}" data-u="${k}">
+        <div class="rock">${k + 1}</div>
+        ${passed ? '<div class="seal">합격</div>' : open ? '' : '<div class="badge">🔒</div>'}
+        <div class="lbl">${u.short}</div></button>`;
+    }).join('') + '</div></div>';
+  $('river').innerHTML = lane('초등 분수', 0, 5) + lane('중1 정수와 유리수', 5, 9);
+  $('passCount').textContent = Object.keys(store.passed).length;
+  justPassed = null;
+}
+$('river').onclick = e => {
+  const b = e.target.closest('.stone'); if (!b) return;
+  const u = +b.dataset.u;
+  if (!isOpen(u)) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return; }
+  openEntry(u);
+};
+
+/* =========================================================
+   2. 단원 입구 — 원리 카드
+   ========================================================= */
+let cur = { unit: 0, card: 0, cards: [] };
+function openEntry(u) {
+  cur.unit = u; cur.card = 0; cur.cards = UNITS[u].cards();
+  $('entryTitle').textContent = `${CIRCLED[u]} ${UNITS[u].title}`;
+  $('certBtn').classList.toggle('hidden', !isPassed(u));
+  renderCard(); go('entry');
+}
+function renderCard() {
+  const c = cur.cards[cur.card];
+  $('card').innerHTML = `<div class="cpic">${c.pic}</div><div class="ctext">${c.text}</div>`;
+  $('dots').innerHTML = cur.cards.map((_, i) => `<i class="${i === cur.card ? 'on' : ''}"></i>`).join('');
+  $('prevCard').disabled = cur.card === 0;
+  $('nextCard').disabled = cur.card === cur.cards.length - 1;
+}
+$('prevCard').onclick = () => { if (cur.card > 0) { cur.card--; renderCard(); } };
+$('nextCard').onclick = () => { if (cur.card < cur.cards.length - 1) { cur.card++; renderCard(); } };
+// 카드 밀어서 넘기기
+(() => { let x0 = null; const el = $('card');
+  el.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+  el.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (dx < -50) $('nextCard').click(); else if (dx > 50) $('prevCard').click(); });
+})();
+$('certBtn').onclick = () => openModal(`${certHTML(cur.unit, store.passed[cur.unit])}<div class="mrow"><button class="mbtn primary" onclick="closeModal()">닫기</button></div>`);
+$('practiceBtn').onclick = () => startPlay('practice');
+$('examBtn').onclick = () => startPlay('exam');
+
+/* =========================================================
+   3. 문제 풀이
+   ========================================================= */
+let play = null;
+// play = { mode, unit, p, inp, tries, retried, phase, streak, exam:[], idx, results:[] }
+
+function newProblem(unit, type) {
+  const types = UNITS[unit].types;
+  const t = type == null ? ri(0, types.length - 1) : type;
+  const p = types[t](); p.t = t; p.unit = unit; return p;
+}
+function makeExam(unit) {
+  const n = UNITS[unit].types.length, list = [], seen = new Set();
+  const order = Array.from({ length: CONFIG.EXAM_COUNT }, (_, i) => i % n).sort((a, b) => a - b); // 쉬운 유형부터
+  for (const t of order) {
+    let p, tries = 0;
+    do { p = newProblem(unit, t); tries++; } while (seen.has(p.ask + p.q + p.ans) && tries < 15);
+    seen.add(p.ask + p.q + p.ans); list.push(p);
+  }
+  return list;
+}
+
+function startPlay(mode) {
+  play = { mode, unit: cur.unit, streak: 0, idx: 0, results: [] };
+  $('playTitle').textContent = `${CIRCLED[cur.unit]} ${UNITS[cur.unit].title}`;
+  $('progress').classList.toggle('hidden', mode !== 'exam');
+  $('hintBtn').classList.toggle('hidden', mode === 'exam');
+  if (mode === 'exam') { play.exam = makeExam(cur.unit); loadProblem(play.exam[0]); }
+  else loadProblem(newProblem(cur.unit));
+  go('play');
+}
+
+function loadProblem(p) {
+  play.p = p; play.tries = 0; play.retried = false; play.phase = 'answer';
+  play.inp = { neg: false, num: '', den: '', focus: 'num', choice: null, set: new Set(), point: null };
+  $('ask').innerHTML = p.ask || '';
+  $('feedback').textContent = ''; $('feedback').className = 'feedback';
+  $('helpBox').classList.add('hidden'); $('helpBox').innerHTML = '';
+  $('choices').innerHTML = p.kind === 'choice' ? p.choices.map(c => `<button data-c="${c}">${c}</button>`).join('') : '';
+  const inputKind = p.kind === 'frac' || p.kind === 'int';
+  $('pad').classList.toggle('dim', !inputKind);
+  $('fracSel').classList.toggle('hidden', p.kind !== 'frac');
+  setCheckBtn('확인 ✔', false);
+  updateStatus();
+  renderPic(); renderExpr();
+  $('qarea').scrollTop = 0;
+}
+
+function updateStatus() {
+  if (play.mode === 'exam') {
+    $('playStatus').textContent = `📝 시험 ${play.idx + 1} / ${CONFIG.EXAM_COUNT}`;
+    $('progress').firstElementChild.style.width = (play.idx / CONFIG.EXAM_COUNT * 100) + '%';
+  } else $('playStatus').textContent = `✏️ 연습 · 연속 정답 ${play.streak}${play.streak >= 3 ? '🔥' : ''}`;
+}
+function setCheckBtn(text, next) { $('checkBtn').textContent = text; $('checkBtn').classList.toggle('next', next); }
+
+// 그림: 색칠하기·점 찍기 문제는 학생이 누른 대로 다시 그림
+function renderPic() {
+  const p = play.p;
+  if (p.kind === 'shade') $('pic').innerHTML = p.shape === 'pie' ? pie(p.n, 0, { size: 220, click: true, set: play.inp.set }) : bar(p.n, 0, { w: 460, h: 80, click: true, set: play.inp.set });
+  else if (p.kind === 'numline') $('pic').innerHTML = numLine(Object.assign({}, p.line, { click: true, sel: play.inp.point, w: 680 }));
+  else $('pic').innerHTML = p.pic || '';
+}
+
+// 식과 답 칸
+function ansBoxHTML() {
+  const i = play.inp, p = play.p;
+  const sign = `<span class="asign" id="aSign">${i.neg ? M : ''}</span>`;
+  if (p.kind === 'frac') {
+    return `<span class="ans">${sign}<span class="afrac">
+      <span class="abox ${i.focus === 'num' ? 'on' : ''}" data-f="num">${i.num}</span><span class="aline"></span>
+      <span class="abox ${i.focus === 'den' ? 'on' : ''}" data-f="den">${i.den}</span></span></span>`;
+  }
+  return `<span class="ans">${sign}<span class="abox on">${i.num}</span></span>`;
+}
+function renderExpr() {
+  const p = play.p;
+  let html = p.q || '';
+  if (p.kind === 'frac' || p.kind === 'int') html = html.replace(A, ansBoxHTML());
+  if (p.kind === 'choice') html = html.replace(CH, `<span class="cbox">${play.inp.choice || '?'}</span>`);
+  $('expr').innerHTML = html;
+  $('fracSel').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.f === play.inp.focus));
+  $('choices').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.c === play.inp.choice));
+}
+
+/* ---------- 입력 ---------- */
+$('pad').onclick = e => {
+  const b = e.target.closest('button'); if (!b || play.phase !== 'answer') return;
+  const i = play.inp, k = b.dataset.k, f = play.p.kind === 'frac' ? i.focus : 'num';
+  if (k === '-') i.neg = !i.neg;
+  else if (k === 'del') { if (i[f]) i[f] = i[f].slice(0, -1); else if (f === 'den') i.focus = 'num'; }
+  else if (i[f].length < 3) { i[f] = (i[f] === '0' ? '' : i[f]) + k; }
+  renderExpr();
+};
+$('fracSel').onclick = e => { const b = e.target.closest('button'); if (!b || play.phase !== 'answer') return; play.inp.focus = b.dataset.f; renderExpr(); };
+$('expr').onclick = e => { const b = e.target.closest('[data-f]'); if (!b || play.phase !== 'answer') return; play.inp.focus = b.dataset.f; renderExpr(); };
+$('choices').onclick = e => { const b = e.target.closest('button'); if (!b || play.phase !== 'answer') return; play.inp.choice = b.dataset.c; renderExpr(); };
+$('pic').onclick = e => {
+  if (play.phase !== 'answer') return;
+  const piece = e.target.closest('[data-i]'), tick = e.target.closest('[data-v]');
+  if (piece && play.p.kind === 'shade') { const n = +piece.dataset.i; play.inp.set.has(n) ? play.inp.set.delete(n) : play.inp.set.add(n); renderPic(); }
+  if (tick && play.p.kind === 'numline') { play.inp.point = +tick.dataset.v; renderPic(); }
+};
+$('hintBtn').onclick = () => { if (play.mode === 'practice' && play.phase === 'answer') showHelp('💡 힌트', play.p.hint); };
+function showHelp(title, html) { $('helpBox').innerHTML = `<h4>${title}</h4>${html}`; $('helpBox').classList.remove('hidden'); setTimeout(() => $('helpBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 30); }
+function shakeExpr() { const el = $('expr'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+/* ---------- 채점 ----------
+   반환: 'empty'(아직 안 씀) | 'zero'(분모 0) | 'reduce'(값은 맞는데 약분 덜 됨) | 'right' | 'wrong' */
+function judge() {
+  const p = play.p, i = play.inp;
+  if (p.kind === 'choice') return i.choice == null ? 'empty' : (i.choice === p.ans ? 'right' : 'wrong');
+  if (p.kind === 'shade') return i.set.size === 0 ? 'empty' : (i.set.size === p.ans ? 'right' : 'wrong');
+  if (p.kind === 'numline') return i.point == null ? 'empty' : (i.point === p.ans ? 'right' : 'wrong');
+  if (i.num === '') return 'empty';
+  const num = +i.num * (i.neg ? -1 : 1);
+  if (p.kind === 'int') return num === p.ans ? 'right' : 'wrong';
+  if (i.den === '') return new Fr(num, 1).eq(p.ans) ? 'right' : 'wrong';         // 분모 칸 비움 = 정수
+  if (+i.den === 0) return 'zero';
+  const val = new Fr(num, +i.den);
+  if (!val.eq(p.ans)) return 'wrong';
+  const notReduced = gcd(+i.num, +i.den) > 1 || +i.den === 1;
+  if (notReduced && !p.noRed && CONFIG.REDUCE_RETRY) return play.retried ? 'wrong' : 'reduce';
+  return 'right';
+}
+// 학생이 쓴 답(복습 화면용)
+function userAnsHTML() {
+  const p = play.p, i = play.inp;
+  if (p.kind === 'choice') return i.choice;
+  if (p.kind === 'shade') return `${i.set.size}조각 색칠`;
+  if (p.kind === 'numline') return N(i.point);
+  const sign = i.neg ? M : '';
+  return sign + (p.kind === 'frac' && i.den !== '' ? F(i.num, i.den) : i.num);
+}
+function correctAnsHTML(p) {
+  if (p.kind === 'frac') return V(p.ans);
+  if (p.kind === 'int' || p.kind === 'numline') return N(p.ans);
+  if (p.kind === 'shade') return `${p.ans}조각 색칠`;
+  return p.ans;
+}
+// 정답을 채운 식(그림 풀이·복습용)
+function solvedExpr(p) {
+  if (!p.q) return '';
+  return p.q.replace(A, `<span class="filled">${correctAnsHTML(p)}</span>`).replace(CH, `<span class="cbox filled">${p.ans}</span>`);
+}
+
+$('checkBtn').onclick = () => {
+  if (play.phase === 'wait') return;
+  if (play.phase === 'next') { loadProblem(newProblem(play.unit)); return; }
+  if (play.phase === 'similar') { loadProblem(newProblem(play.unit, play.p.t)); return; }
+  const r = judge();
+  if (r === 'empty') { shakeExpr(); if (play.p.kind === 'shade' || play.p.kind === 'numline') { const el = $('pic'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } return; }
+  if (r === 'zero') { feedback('분모는 0이 될 수 없어요!', 'info'); shakeExpr(); return; }
+  if (r === 'reduce') { play.retried = true; feedback(CONFIG.REDUCE_MSG, 'info'); return; }
+  play.mode === 'exam' ? examStep(r === 'right') : practiceStep(r === 'right');
+};
+function feedback(text, cls) { const f = $('feedback'); f.textContent = text; f.className = 'feedback ' + cls; }
+
+/* ---------- 연습 ---------- */
+function practiceStep(ok) {
+  if (ok) {
+    play.streak++; updateStatus();
+    feedback(pick(CONFIG.CHEERS), 'ok');
+    play.phase = 'next'; setCheckBtn('다음 문제 →', true);
+    return;
+  }
+  play.tries++;
+  if (play.tries === 1) {           // 첫 번째 오답: 힌트 보여주고 다시
+    feedback(CONFIG.RETRY_MSG, 'bad'); showHelp('💡 힌트', play.p.hint); return;
+  }
+  // 두 번째 오답: 그림 풀이 + 정답, 그리고 숫자만 바꾼 비슷한 문제
+  play.streak = 0; updateStatus();
+  feedback('괜찮아요! 풀이를 같이 봐요 🙂', 'bad');
+  showHelp('🖍 그림 풀이', `<div class="expr" style="font-size:34px">${solvedExpr(play.p)}</div>${play.p.ex}`);
+  if (play.p.kind === 'shade' || play.p.kind === 'numline') $('pic').innerHTML = '';
+  play.phase = 'similar'; setCheckBtn('비슷한 문제 →', true);
+}
+
+/* ---------- 시험 ---------- */
+function examStep(ok) {
+  play.results.push({ p: play.p, ok, user: userAnsHTML() });
+  play.idx++;
+  if (play.idx >= CONFIG.EXAM_COUNT) return finishExam();
+  play.phase = 'wait';
+  feedback('다음 문제!', 'info');
+  setTimeout(() => loadProblem(play.exam[play.idx]), 350); // 맞았는지는 끝나고 한꺼번에 공개
+}
+
+/* =========================================================
+   4. 결과 / 합격증
+   ========================================================= */
+function certHTML(u, date) {
+  return `<div class="cert"><div class="cseal">합격</div><div class="ct">합격증</div>
+    <div class="cn">${escapeHTML(store.name)}</div><div class="cu">${CIRCLED[u]} ${UNITS[u].title}</div><div class="cd">${date || ''}</div></div>`;
+}
+function finishExam() {
+  const u = play.unit, score = play.results.filter(r => r.ok).length, pass = score >= CONFIG.PASS_SCORE;
+  if (pass && !isPassed(u)) { store.passed[u] = today(); save(); justPassed = u; }
+  $('resTitle').textContent = pass ? `🎉 합격! ${score} / ${CONFIG.EXAM_COUNT}` : `${score} / ${CONFIG.EXAM_COUNT}`;
+  $('resCert').innerHTML = pass ? certHTML(u, store.passed[u]) : '';
+  $('resMsg').innerHTML = pass ? (u < 8 ? '다음 돌이 열렸어요! 선생님께 합격증을 보여 드리세요.' : '징검다리를 모두 건넜어요! 정말 대단해요 🏆')
+                              : CONFIG.FAIL_MSG(CONFIG.PASS_SCORE, score);
+  const wrong = play.results.some(r => !r.ok);
+  $('resBtns').innerHTML = (wrong ? `<button class="bigbtn" id="reviewBtn">🔍 틀린 문제 보기</button>` : '') +
+    (pass ? `<button class="bigbtn green" id="toMapBtn">${u < 8 ? '다음 돌로 →' : '지도로 →'}</button>`
+          : `<button class="bigbtn" id="rePractice">✏️ 다시 연습하기</button><button class="bigbtn primary" id="reExam">📝 다시 시험</button>`);
+  if (wrong) $('reviewBtn').onclick = showReview;
+  if (pass) $('toMapBtn').onclick = () => { renderMap(); go('map'); };
+  else { $('rePractice').onclick = () => startPlay('practice'); $('reExam').onclick = () => startPlay('exam'); }
+  go('result');
+}
+function showReview() {
+  const items = play.results.filter(r => !r.ok).map(r => `<div class="rev">
+      <div class="ask">${r.p.ask || ''}</div>
+      ${r.p.q ? `<div class="rq">${solvedExpr(r.p)}</div>` : ''}
+      <div class="ra">내 답: <b>${r.user}</b> · 정답: <span class="filled">${correctAnsHTML(r.p)}</span></div>
+      <div class="rx">${r.p.ex}</div></div>`).join('');
+  openModal(`<h2>🔍 틀린 문제 다시 보기</h2>${items}<div class="mrow"><button class="mbtn primary" onclick="closeModal()">닫기</button></div>`, true);
+}
+
+/* ---------- 그만두기 ---------- */
+$('quitBtn').onclick = () => {
+  if (play.mode !== 'exam') { openEntry(play.unit); return; }
+  openModal(`<h2>정말 그만할까요?</h2><p>시험은 처음부터 다시 봐야 해요.</p>
+    <div class="mrow"><button class="mbtn" onclick="closeModal()">계속 풀기</button><button class="mbtn danger" id="quitYes">그만하기</button></div>`);
+  $('quitYes').onclick = () => { closeModal(); openEntry(play.unit); };
+};
+
+/* =========================================================
+   이름 입력 / 교사용 메뉴
+   ========================================================= */
+function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function askName(first) {
+  openModal(`<h2>${first ? '👋 이름을 알려줘!' : '이름 바꾸기'}</h2><p>합격증에 들어갈 이름이에요.</p>
+    <input type="text" id="nameInput" maxlength="10" placeholder="이름 또는 별명" value="${escapeHTML(store.name)}">
+    <div class="mrow"><button class="mbtn primary" id="nameOk">${first ? '시작하기' : '저장'}</button></div>`);
+  const inp = $('nameInput'); setTimeout(() => inp.focus(), 50);
+  const ok = () => { const v = inp.value.trim(); if (!v) { inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); return; }
+    store.name = v; save(); closeModal(); renderMap(); };
+  $('nameOk').onclick = ok; inp.onkeydown = e => { if (e.key === 'Enter') ok(); };
+}
+$('teacherBtn').onclick = () => {
+  openModal(`<h2>⚙️ 교사용 메뉴</h2><p>비밀번호를 입력하세요.</p>
+    <input type="password" id="pwInput" inputmode="numeric" placeholder="비밀번호">
+    <div class="mrow"><button class="mbtn" onclick="closeModal()">닫기</button><button class="mbtn primary" id="pwOk">확인</button></div>`);
+  const inp = $('pwInput'); setTimeout(() => inp.focus(), 50);
+  const ok = () => { if (inp.value === CONFIG.TEACHER_PW) teacherPanel(); else { inp.value = ''; inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); } };
+  $('pwOk').onclick = ok; inp.onkeydown = e => { if (e.key === 'Enter') ok(); };
+};
+function teacherPanel() {
+  openModal(`<h2>⚙️ 교사용 메뉴</h2>
+    <div class="sect">합격 단원 (체크하면 오늘 날짜로 합격 처리 — 기록 복구용)</div>
+    <div class="tgrid">${UNITS.map((u, k) => `<label><input type="checkbox" data-pu="${k}" ${isPassed(k) ? 'checked' : ''}>${CIRCLED[k]} ${u.short}</label>`).join('')}</div>
+    <label class="tline"><input type="checkbox" id="allOpen" ${store.allOpen ? 'checked' : ''}>모든 돌 열어 두기 (합격하지 않아도 모든 단원 선택 가능)</label>
+    <div class="mrow">
+      <button class="mbtn" id="tName">이름 바꾸기</button>
+      <button class="mbtn danger" id="tReset">기록 전부 지우기</button>
+      <button class="mbtn primary" id="tClose">닫기</button>
+    </div>`, true);
+  $('mbox').querySelectorAll('[data-pu]').forEach(cb => cb.onchange = () => {
+    const k = +cb.dataset.pu; if (cb.checked) store.passed[k] = store.passed[k] || today(); else delete store.passed[k]; save(); renderMap();
+  });
+  $('allOpen').onchange = e => { store.allOpen = e.target.checked; save(); renderMap(); };
+  $('tName').onclick = () => askName(false);
+  $('tReset').onclick = () => {
+    openModal(`<h2>기록을 모두 지울까요?</h2><p>이름과 합격 기록이 모두 사라지고 되돌릴 수 없어요.</p>
+      <div class="mrow"><button class="mbtn" id="rNo">취소</button><button class="mbtn danger" id="rYes">모두 지우기</button></div>`);
+    $('rNo').onclick = teacherPanel;
+    $('rYes').onclick = () => { store = { name: '', passed: {}, allOpen: false }; save(); closeModal(); renderMap(); askName(true); };
+  };
+  $('tClose').onclick = () => { closeModal(); renderMap(); };
+}
+
+/* ---------- 시작 ---------- */
+renderMap(); go('map');
+if (!store.name) askName(true);
+</script>
+</body>
+</html>
